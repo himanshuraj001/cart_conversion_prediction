@@ -23,7 +23,54 @@ The code is natively compatible with the Hugging Face `transformers` library and
 
 ## Installation and Setup
 
-1. **Environment Setup:** Ensure you have a CUDA-compatible environment (e.g., NVIDIA A6000 or similar for 11B parameter models). Install the required dependencies:
-
+1. **Environment Setup:** Ensure you have a CUDA-compatible environment. Install the required dependencies:
 ```bash
 pip install torch torchvision numpy pandas pillow tqdm transformers peft sentence-transformers
+```
+### Hugging Face Token
+
+Export your Hugging Face authentication token to access gated models like Llama 3.2:
+
+```bash
+export HF_TOKEN="your_huggingface_token_here"
+```
+
+
+### Data Preparation
+The framework is evaluated on the SLAKE (English subset) and VQA-Med 2019 datasets.
+Your data directories should be structured as follows:
+
+* Images: Original medical scans (e.g., CT, MRI, X-Ray).
+* Masks: Binary anatomical region masks corresponding to the original scans (generated via MedCLIP-SAM).
+* Annotations: JSON files containing the multiple-choice question format. Each entry should include img_name, question, options, correct_answer, modality_group, and organ_group.
+
+Update the constant paths (e.g., TRAIN_DATA_JSON, TRAIN_IMAGE_ROOT, TRAIN_MASK_DIR) in train_demo.py and test_demo.py to point to your local dataset locations.
+
+### Training (MAFt)
+To finetune the base VLM on the source domain using LoRA and Mask-Aware Finetuning:
+
+```bash
+python train_demo.py
+```
+Training Details:
+* Utilizes 8-bit AdamW optimizer and gradient checkpointing to save VRAM.
+* Applies a custom masking strategy in the collate function so the model calculates loss exclusively on the generated medical answer, not the prompt.
+
+### Inference (AAIN + WMMER)
+To run the evaluation pipeline on the target domain:
+
+```bash
+python test_demo.py
+```
+Inference Details:
+* Dynamically normalizes target images using cached source domain statistics (AAIN).
+* Uses clip-ViT-B-32 to retrieve the best 1-shot example from the support set based on a weighted blend of visual and textual similarity (WMMER).
+
+  Update directory paths here too...
+  
+
+
+
+
+
+
